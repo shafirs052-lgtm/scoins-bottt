@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCoinS - Коллекционные монеты</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #1f2937;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        .header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .balance-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #667eea, #5a6fd8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            font-weight: bold;
+        }
+        
+        .menu {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .menu-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+        
+        .menu-btn.active {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        .section.active { display: block; }
+        
+        .section h2 { text-align: center; margin-bottom: 20px; color: #1f2937; }
+        
+        .coins-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .coin-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .coin-card:hover { transform: translateY(-4px); }
+        
+        .coin-icon { font-size: 3.5em; margin-bottom: 12px; }
+        .coin-name { font-weight: bold; margin-bottom: 8px; font-size: 1.1em; }
+        
+        .coin-rarity {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .rarity-common { background: #6b7280; }
+        .rarity-rare { background: #3b82f6; }
+        .rarity-epic { background: #8b5cf6; }
+        .rarity-legendary { background: #f59e0b; }
+        
+        .coin-price {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #f59e0b;
+            margin: 12px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #f59e0b, #e67e22);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover { transform: scale(1.02); }
+        .btn:disabled { background: #d1d5db; cursor: not-allowed; transform: none; }
+        
+        .payment-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        
+        .payment-option {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .payment-option.selected {
+            border-color: #f59e0b;
+            background: #fffaf0;
+        }
+        
+        .payment-option .icon {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+        }
+        
+        .amount-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+        
+        .amount-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .amount-btn.selected {
+            border-color: #f59e0b;
+            background: #fffaf0;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .payment-info {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .address-box {
+            background: #1f2937;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        
+        .checking-payment {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #f59e0b;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .header-top { flex-direction: column; gap: 12px; }
+            .coins-grid { grid-template-columns: 1fr; }
+            .menu { flex-direction: column; }
+            .payment-options { grid-template-columns: 1fr; }
+            .amount-buttons { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-top">
+                <h1>🪙 SCoinS PRO</h1>
+                <div class="balance-card">
+                    <span id="balance">100</span>
+                    <span>⭐</span>
+                </div>
+            </div>
+            
+            <div class="menu">
+                <button class="menu-btn active" onclick="showSection('shop')">🏪 Магазин</button>
+                <button class="menu-btn" onclick="showSection('collection')">🎒 Коллекция</button>
+                <button class="menu-btn" onclick="showSection('topup')">💳 Пополнить</button>
+                <button class="menu-btn" onclick="showSection('marketplace')">🔄 Рынок</button>
+            </div>
+        </header>
+        
+        <section id="shop" class="section active">
+            <h2>🏪 Магазин монет</h2>
+            <div class="coins-grid" id="coinsGrid"></div>
+        </section>
+        
+        <section id="collection" class="section">
+            <h2>🎒 Ваша коллекция</h2>
+            <div id="collectionGrid"></div>
+        </section>
+        
+        <section id="topup" class="section">
+            <h2>💳 Пополнение баланса</h2>
+            
+            <div class="payment-options">
+                <div class="payment-option selected" onclick="selectPayment('stars')">
+                    <div class="icon">⭐</div>
+                    <div style="font-weight: bold;">Telegram Stars</div>
+                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 8px;">
+                        1 звезда = 1 ⭐ в игре<br>
+                        ⚡ Автопополнение
+                    </div>
+                </div>
+                
+                <div class="payment-option" onclick="selectPayment('ton')">
+                    <div class="icon">⚡</div>
+                    <div style="font-weight: bold;">TON</div>
+                    <div style="font-size: 0.9em; color: #6b7280; margin-top: 8px;">
+                        1 TON = 1000 ⭐<br>
+                        🔄 Автопроверка
+                    </div>
+                </div>
+            </div>
+            
+            <h3 style="margin: 24px 0 12px 0;">Выберите сумму:</h3>
+            <div class="amount-buttons">
+                <button class="amount-btn" onclick="selectAmount(1000)">1,000 ⭐</button>
+                <button class="amount-btn" onclick="selectAmount(5000)">5,000 ⭐</button>
+                <button class="amount-btn selected" onclick="selectAmount(10000)">10,000 ⭐</button>
+                <button class="amount-btn" onclick="selectAmount(25000)">25,000 ⭐</button>
+                <button class="amount-btn" onclick="selectAmount(50000)">50,000 ⭐</button>
+                <button class="amount-btn" onclick="selectAmount(100000)">100,000 ⭐</button>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label>Или введите свою сумму:</label>
+                <input type="number" id="customAmount" placeholder="Введите сумму" 
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0;">
+            </div>
+            
+            <button class="btn" onclick="startPayment()" style="margin-top: 16px;">
+                💳 Перейти к оплате
+            </button>
+        </section>
+        
+        <section id="marketplace" class="section">
+            <h2>🔄 Торговая площадка</h2>
+            <div id="marketplaceList"></div>
+        </section>
+        
+        <div class="notification" id="notification"></div>
+        
+        <!-- Модальное окно оплаты -->
+        <div class="modal" id="paymentModal">
+            <div class="modal-content">
+                <h3 id="paymentTitle">💳 Оплата</h3>
+                <div id="paymentContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SCoinS PRO - С АВТОМАТИЧЕСКОЙ ПРОВЕРКОЙ ПЛАТЕЖЕЙ
+        class SCoinsPro {
+            constructor() {
+                this.balance = 100;
+                this.collection = [];
+                this.marketplace = [];
+                this.selectedPayment = 'stars';
+                this.selectedAmount = 10000;
+                this.currentPaymentId = null;
+                this.paymentCheckInterval = null;
+                
+                this.coins = [
+                    {id: 1, name: "Бронзовый SCoin", icon: "🟫", price: 5, rarity: "common"},
+                    {id: 2, name: "Серебряный SCoin", icon: "⚪", price: 15, rarity: "rare"},
+                    {id: 3, name: "Золотой SCoin", icon: "🟡", price: 50, rarity: "epic"},
+                    {id: 4, name: "Платиновый SCoin", icon: "🔘", price: 100, rarity: "legendary"},
+                    {id: 5, name: "Кристальный SCoin", icon: "💎", price: 200, rarity: "legendary"},
+                    {id: 6, name: "Древний SCoin", icon: "🏺", price: 150, rarity: "epic"}
+                ];
+                
+                // ЗАМЕНИТЕ ЭТИ АДРЕСА НА СВОИ!
+                this.paymentAddresses = {
+                    'stars': '@Shafir_052', // Ваш Telegram аккаунт
+                    'ton': 'UQDuq8KaK8kAjmAQ434CZnqHi-tnJ6FV58zkkFi6jvbah-H5' // Ваш TON кошелек
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🎮 SCoinS PRO запущен!');
+                
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.expand();
+                    window.Telegram.WebApp.ready();
+                }
+                
+                this.loadData();
+                this.renderAll();
+            }
+            
+            loadData() {
+                const saved = localStorage.getItem('scoins_pro_save');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.balance = data.balance || 100;
+                        this.collection = data.collection || [];
+                        this.marketplace = data.marketplace || [];
+                    } catch (e) {
+                        console.log('Используем начальные данные');
+                    }
+                }
+            }
+            
+            saveData() {
+                const data = {
+                    balance: this.balance,
+                    collection: this.collection,
+                    marketplace: this.marketplace,
+                    version: 'pro'
+                };
+                localStorage.setItem('scoins_pro_save', JSON.stringify(data));
+            }
+            
+            renderAll() {
+                this.renderShop();
+                this.renderCollection();
+                this.renderMarketplace();
+                this.updateBalance();
+            }
+            
+            renderShop() {
+                const grid = document.getElementById('coinsGrid');
+                grid.innerHTML = this.coins.map(coin => {
+                    const owned = this.collection.some(c => c.id === coin.id);
+                    const canBuy = this.balance >= coin.price && !owned;
+                    
+                    return `
+                        <div class="coin-card">
+                            <div class="coin-icon">${coin.icon}</div>
+                            <div class="coin-name">${coin.name}</div>
+                            <div class="coin-rarity rarity-${coin.rarity}">
+                                ${this.getRarityText(coin.rarity)}
+                            </div>
+                            <div class="coin-price">${coin.price} ⭐</div>
+                            <button class="btn" onclick="game.buyCoin(${coin.id})" 
+                                    ${!canBuy ? 'disabled' : ''}>
+                                ${owned ? '✅ В коллекции' : canBuy ? 'Купить' : 'Недостаточно'}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            renderCollection() {
+                const grid = document.getElementById('collectionGrid');
+                
+                if (this.collection.length === 0) {
+                    grid.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #6b7280;">
+                            <div style="font-size: 3em; margin-bottom: 12px;">🎒</div>
+                            <p>Коллекция пуста</p>
+                            <p style="font-size: 0.9em; margin-top: 8px;">Купите первую монету!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = this.collection.map((coin, index) => `
+                    <div class="coin-card" style="display: inline-block; width: 140px; margin: 8px; vertical-align: top;">
+                        <div class="coin-icon">${coin.icon}</div>
+                        <div style="font-weight: bold; font-size: 0.9em;">${coin.name}</div>
+                        <div style="font-size: 0.7em; color: #6b7280;">${this.getRarityText(coin.rarity)}</div>
+                        <button class="btn btn-secondary" onclick="game.sellCoin(${index})" style="margin-top: 8px;">
+                            💰 Продать
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            renderMarketplace() {
+                const list = document.getElementById('marketplaceList');
+                
+                if (this.marketplace.length === 0) {
+                    list.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #6b7280;">
+                            <div style="font-size: 3em; margin-bottom: 12px;">🔄</div>
+                            <p>На рынке пока нет предложений</p>
+                            <p style="font-size: 0.9em; margin-top: 8px;">Продайте свои монеты первыми!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                list.innerHTML = this.marketplace.map((item, index) => `
+                    <div class="coin-card">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="font-size: 2em;">${item.coin.icon}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold;">${item.coin.name}</div>
+                                <div style="font-size: 0.8em; color: #6b7280;">Продавец: User${item.sellerId}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: bold; color: #f59e0b;">${item.price} ⭐</div>
+                                <button class="btn" onclick="game.buyFromMarketplace(${index})" 
+                                        ${this.balance < item.price ? 'disabled' : ''}>
+                                    Купить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            updateBalance() {
+                document.getElementById('balance').textContent = this.balance;
+            }
+            
+            // АВТОМАТИЧЕСКАЯ СИСТЕМА ПЛАТЕЖЕЙ
+            startPaymentProcess() {
+                const amount = document.getElementById('customAmount').value || this.selectedAmount;
+                
+                if (amount < 1000) {
+                    this.showNotification('Минимальная сумма 1,000 ⭐', 'error');
+                    return;
+                }
+                
+                this.currentPaymentId = 'payment_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                if (this.selectedPayment === 'stars') {
+                    this.showStarsPayment(amount);
+                } else if (this.selectedPayment === 'ton') {
+                    this.showTonPayment(amount);
+                }
+            }
+            
+            showStarsPayment(amount) {
+                const userId = this.getUserId();
+                const paymentAddress = this.paymentAddresses.stars;
+                
+                const content = `
+                    <div class="payment-info">
+                        <h4>⭐ Оплата Telegram Stars</h4>
+                        <p><strong>Сумма:</strong> ${amount} Stars</p>
+                        <p><strong>Курс:</strong> 1 Star = 1 ⭐ в игре</p>
+                    </div>
+                    
+                    <div class="payment-info">
+                        <p><strong>Инструкция:</strong></p>
+                        <ol style="margin: 8px 0; padding-left: 20px;">
+                            <li>Переведите <strong>${amount} Stars</strong> на аккаунт:</li>
+                            <div class="address-box" onclick="copyToClipboard('${paymentAddress}')">
+                                ${paymentAddress}
+                            </div>
+                            <li>В комментарии укажите:</li>
+                            <div class="address-box" onclick="copyToClipboard('SCoinS ${userId} ${this.currentPaymentId}')">
+                                SCoinS ${userId} ${this.currentPaymentId}
+                            </div>
+                            <li>Система автоматически обнаружит платеж в течение 2 минут</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="checking-payment">
+                        <div class="spinner"></div>
+                        <p>⏳ Ожидаем оплату...</p>
+                        <p style="font-size: 0.9em; color: #6b7280;">Проверяем каждые 10 секунд</p>
+                    </div>
+                    
+                    <button class="btn" onclick="game.startPaymentCheck(${amount})">
+                        🔄 Я оплатил, проверить сейчас
+                    </button>
+                    <button class="btn btn-secondary" onclick="game.closePaymentModal()">
+                        ❌ Отмена
+                    </button>
+                `;
+                
+                this.showPaymentModal('⭐ Оплата Stars', content);
+                this.startPaymentCheck(amount);
+            }
+            
+            showTonPayment(amount) {
+                const tonAmount = (amount / 1000).toFixed(3);
+                const paymentAddress = this.paymentAddresses.ton;
+                
+                const content = `
+                    <div class="payment-info">
+                        <h4>⚡ Оплата TON</h4>
+                        <p><strong>Сумма:</strong> ${tonAmount} TON</p>
+                        <p><strong>Курс:</strong> 1 TON = 1,000 ⭐ в игре</p>
+                    </div>
+                    
+                    <div class="payment-info">
+                        <p><strong>Инструкция:</strong></p>
+                        <ol style="margin: 8px 0; padding-left: 20px;">
+                            <li>Переведите <strong>${tonAmount} TON</strong> на кошелек:</li>
+                            <div class="address-box" onclick="copyToClipboard('${paymentAddress}')">
+                                ${paymentAddress}
+                            </div>
+                            <li>В комментарии укажите (если возможно):</li>
+                            <div class="address-box" onclick="copyToClipboard('SCoinS ${this.currentPaymentId}')">
+                                SCoinS ${this.currentPaymentId}
+                            </div>
+                            <li>Система автоматически обнаружит платеж в течение 3 минут</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="checking-payment">
+                        <div class="spinner"></div>
+                        <p>⏳ Сканируем блокчейн TON...</p>
+                        <p style="font-size: 0.9em; color: #6b7280;">Проверяем каждые 15 секунд</p>
+                    </div>
+                    
+                    <button class="btn" onclick="game.startPaymentCheck(${amount})">
+                        🔄 Я оплатил, проверить сейчас
+                    </button>
+                    <button class="btn btn-secondary" onclick="game.closePaymentModal()">
+                        ❌ Отмена
+                    </button>
+                `;
+                
+                this.showPaymentModal('⚡ Оплата TON', content);
+                this.startPaymentCheck(amount);
+            }
+            
+            startPaymentCheck(amount) {
+                // Останавливаем предыдущую проверку
+                if (this.paymentCheckInterval) {
+                    clearInterval(this.paymentCheckInterval);
+                }
+                
+                let checksCount = 0;
+                const maxChecks = 18; // 3 минуты для TON, 2 минуты для Stars
+                
+                this.paymentCheckInterval = setInterval(() => {
+                    checksCount++;
+                    this.checkPaymentStatus(amount, checksCount);
+                    
+                    if (checksCount >= maxChecks) {
+                        clearInterval(this.paymentCheckInterval);
+                        this.showNotification('⏰ Время оплаты истекло', 'info');
+                    }
+                }, this.selectedPayment === 'ton' ? 10000 : 6666); // 10сек для TON, 6.6сек для Stars
+                
+                // Первая проверка сразу
+                this.checkPaymentStatus(amount, 0);
+            }
+            
+            checkPaymentStatus(amount, checkNumber) {
+                // В РЕАЛЬНОМ ПРИЛОЖЕНИИ ЗДЕСЬ БУДЕТ ЗАПРОС К ВАШЕМУ СЕРВЕРУ
+                // Который проверяет:
+                // - Для Stars: базу данных полученных переводов
+                // - Для TON: блокчейн на наличие транзакций
+                
+                // ДЕМО-РЕЖИМ: 30% шанс "успешной оплаты" после 3-й проверки
+                const isPaid = checkNumber >= 2 && Math.random() < 0.3;
+                
+                if (isPaid) {
+                    clearInterval(this.paymentCheckInterval);
+                    this.completePayment(amount);
+                } else if (checkNumber === 0) {
+                    this.showNotification('🔍 Начинаем проверку платежа...', 'info');
+                }
+            }
+            
+            completePayment(amount) {
+                this.balance += parseInt(amount);
+                this.saveData();
+                this.updateBalance();
+                this.renderShop();
+                this.closePaymentModal();
+                this.showNotification(`✅ Платеж получен! Баланс пополнен на ${amount.toLocaleString()} ⭐`);
+                
+                // Премиум бонус за крупные платежи
+                if (amount >= 10000) {
+                    this.showNotification('🎁 Вы получили премиум статус! Доступны эксклюзивные монеты!', 'info');
+                }
+            }
+            
+            // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+            getUserId() {
+                const tg = window.Telegram?.WebApp;
+                return tg?.initDataUnsafe?.user?.id || 'unknown';
+            }
+            
+            showPaymentModal(title, content) {
+                document.getElementById('paymentTitle').textContent = title;
+                document.getElementById('paymentContent').innerHTML = content;
+                this.showModal('paymentModal');
+            }
+            
+            closePaymentModal() {
+                if (this.paymentCheckInterval) {
+                    clearInterval(this.paymentCheckInterval);
+                }
+                this.closeModal('paymentModal');
+            }
+            
+            showModal(modalId) {
+                document.getElementById(modalId).style.display = 'flex';
+            }
+            
+            closeModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+            }
+            
+            showNotification(message, type = 'success') {
+                const notif = document.getElementById('notification');
+                notif.textContent = message;
+                notif.style.background = type === 'error' ? '#ef4444' : 
+                                       type === 'info' ? '#3b82f6' : '#10b981';
+                notif.style.display = 'block';
+                setTimeout(() => notif.style.display = 'none', 5000);
+            }
+            
+            // ИГРОВЫЕ ФУНКЦИИ
+            buyCoin(coinId) {
+                const coin = this.coins.find(c => c.id === coinId);
+                if (!coin) return this.showNotification('Монета не найдена', 'error');
+                
+                if (this.collection.some(c => c.id === coinId)) {
+                    return this.showNotification('Эта монета уже в коллекции', 'error');
+                }
+                
+                if (this.balance < coin.price) {
+                    return this.showNotification('Недостаточно звезд', 'error');
+                }
+                
+                this.balance -= coin.price;
+                this.collection.push({...coin});
+                this.saveData();
+                this.renderAll();
+                this.showNotification(`🎉 Куплено: ${coin.name}!`);
+            }
+            
+            sellCoin(collectionIndex) {
+                const coin = this.collection[collectionIndex];
+                const sellPrice = Math.floor(coin.price * 0.7);
+                
+                this.marketplace.push({
+                    coin: coin,
+                    price: sellPrice,
+                    sellerId: Math.floor(Math.random() * 1000),
+                    collectionIndex: collectionIndex
+                });
+                
+                this.collection.splice(collectionIndex, 1);
+                this.saveData();
+                this.renderAll();
+                this.showNotification('✅ Монета выставлена на продажу!');
+            }
+            
+            buyFromMarketplace(marketIndex) {
+                const item = this.marketplace[marketIndex];
+                if (!item) return;
+                
+                if (this.balance < item.price) {
+                    return this.showNotification('Недостаточно звезд', 'error');
+                }
+                
+                this.balance -= item.price;
+                this.collection.push(item.coin);
+                this.marketplace.splice(marketIndex, 1);
+                
+                this.saveData();
+                this.renderAll();
+                this.showNotification(`🎉 Куплено с рынка: ${item.coin.name}!`);
+            }
+            
+            getRarityText(rarity) {
+                const texts = {
+                    common: 'Обычная', rare: 'Редкая', 
+                    epic: 'Эпическая', legendary: 'Легендарная'
+                };
+                return texts[rarity] || rarity;
+            }
+        }
+        
+        // ГЛОБАЛЬНЫЕ ФУНКЦИИ
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function selectPayment(method) {
+            game.selectedPayment = method;
+            document.querySelectorAll('.payment-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+        
+        function selectAmount(amount) {
+            game.selectedAmount = amount;
+            document.querySelectorAll('.amount-btn').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            document.getElementById('customAmount').value = amount;
+        }
+        
+        function startPayment() {
+            game.startPaymentProcess();
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            game.showNotification('📋 Скопировано в буфер обмена!');
+        }
+        
+        // ЗАПУСК ИГРЫ
+        const game = new SCoinsPro();
+        window.game = game;
+        
+        // Автовыбор
+        setTimeout(() => {
+            document.querySelector('.payment-option').classList.add('selected');
+            document.querySelector('.amount-btn:nth-child(3)').classList.add('selected');
+        }, 100);
+    </script>
+</body>
+</html>
